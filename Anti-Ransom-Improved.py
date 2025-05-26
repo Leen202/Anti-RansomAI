@@ -1,4 +1,3 @@
-
 import streamlit as st
 import joblib
 import os
@@ -6,6 +5,33 @@ import numpy as np
 from PyPDF2 import PdfReader
 import docx
 
+# ✅ تدريب النموذج تلقائيًا إذا ما كان موجود
+if not os.path.exists("ransomware_model.joblib"):
+    import pandas as pd
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import LabelEncoder
+
+    np.random.seed(42)
+    data = {
+        'file_size_kb': np.random.randint(10, 10000, 200),
+        'num_words': np.random.randint(10, 10000, 200),
+        'file_extension': np.random.choice(['.exe', '.txt', '.docx', '.pdf'], 200),
+        'label': np.random.choice(['benign', 'ransomware'], 200)
+    }
+    df = pd.DataFrame(data)
+    df = pd.get_dummies(df, columns=['file_extension'])
+    le = LabelEncoder()
+    df['label_encoded'] = le.fit_transform(df['label'])
+    X = df.drop(columns=['label', 'label_encoded'])
+    y = df['label_encoded']
+    X_train, _, y_train, _ = train_test_split(X, y, test_size=0.2, random_state=42)
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    joblib.dump(model, "ransomware_model.joblib")
+    joblib.dump(le, "label_encoder.joblib")
+
+# ✅ واجهة التطبيق
 st.title("🔐 Anti-Ransom AI - File Behavior Analyzer")
 
 st.write("""
